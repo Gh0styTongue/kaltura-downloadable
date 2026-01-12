@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Force dynamic to prevent caching the response
 export const dynamic = 'force-dynamic';
 
-// Configuration
-const BRIDGE_URL = process.env.PHP_BRIDGE_URL; // e.g., "https://api.mysite.com/bridge.php"
+const BRIDGE_URL = process.env.PHP_BRIDGE_URL;
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const id = searchParams.get('id');
 
-  // 1. Validation
   if (!id) {
     return NextResponse.json(
       { status: 'error', code: 400, message: "Uh oh! You need a valid FastPass ID to enter this attraction." }, 
@@ -27,7 +24,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // 2. Call PHP Bridge to get Metadata (Title + Source URL)
     const bridgeResponse = await fetch(`${BRIDGE_URL}?id=${id}`, {
       headers: { 'User-Agent': USER_AGENT },
       cache: 'no-store'
@@ -57,12 +53,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 3. Clean Filename
     const cleanTitle = title.replace(/[^a-zA-Z0-9\s_-]/g, '').replace(/\s+/g, ' ');
     const filename = `${cleanTitle.replace(/ /g, '_')}.mp4`;
 
-    // 4. Pre-Flight Check (Resolve Akamai Redirects)
-    // We strictly check the headers before streaming to catch the 403/HTML errors.
     const preFlight = await fetch(url, {
       method: 'HEAD',
       headers: { 'User-Agent': USER_AGENT },
@@ -75,7 +68,6 @@ export async function GET(request: NextRequest) {
     const contentLength = preFlight.headers.get('content-length');
     const downloadSize = contentLength ? parseInt(contentLength, 10) : 0;
 
-    // 5. Disney-Themed Error Handling
     if (httpCode === 403) {
       return NextResponse.json(
         { status: 'error', code: 403, message: "The First Order has blocked this transmission. Access Restricted." },
@@ -111,7 +103,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 6. Stream the File
     const fileResponse = await fetch(finalUrl, {
       headers: { 'User-Agent': USER_AGENT }
     });
@@ -120,7 +111,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ status: 'error', code: 500, message: "Stream initialization failed." }, { status: 500 });
     }
 
-    // Prepare headers
     const headers = new Headers();
     headers.set('Content-Description', 'File Transfer');
     headers.set('Content-Type', 'video/mp4');
