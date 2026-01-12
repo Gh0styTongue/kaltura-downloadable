@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
 
 // Force dynamic to prevent caching the response
 export const dynamic = 'force-dynamic';
 
-// Database config
-const dbConfig = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-};
-
-// Helper for consistency with PHP logic
-const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+// Configuration
+const BRIDGE_URL = process.env.PHP_BRIDGE_URL; // e.g., "https://api.mysite.com/bridge.php"
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -22,30 +14,41 @@ export async function GET(request: NextRequest) {
   // 1. Validation
   if (!id) {
     return NextResponse.json(
-      { status: 'error', code: 400, message: "Uh oh! You need a valid ID." }, 
+      { status: 'error', code: 400, message: "Uh oh! You need a valid FastPass ID to enter this attraction." }, 
       { status: 400 }
     );
   }
 
-  try {
-    // 2. Database Lookup
-    const connection = await mysql.createConnection(dbConfig);
-    const [rows]: any = await connection.execute(
-      'SELECT title, downloadable_url FROM disney_videos WHERE id = ? LIMIT 1',
-      [id]
+  if (!BRIDGE_URL) {
+    return NextResponse.json(
+      { status: 'error', code: 500, message: "The Monorail is down. (Bridge URL not configured)." },
+      { status: 500 }
     );
-    await connection.end();
+  }
 
-    if (rows.length === 0) {
-      return NextResponse.json(
-        { status: 'error', code: 404, message: "We looked everywhere, but this relic seems to be lost in the Disney Vault." },
-        { status: 404 }
-      );
+  try {
+    // 2. Call PHP Bridge to get Metadata (Title + Source URL)
+    const bridgeResponse = await fetch(`${BRIDGE_URL}?id=${id}`, {
+      headers: { 'User-Agent': USER_AGENT },
+      cache: 'no-store'
+    });
+
+    if (!bridgeResponse.ok) {
+        if (bridgeResponse.status === 404) {
+            return NextResponse.json(
+                { status: 'error', code: 404, message: "We looked everywhere, but this relic seems to be lost in the Disney Vault." },
+                { status: 404 }
+            );
+        }
+        return NextResponse.json(
+            { status: 'error', code: 500, message: "Communication breakdown with the Archive Droids (Bridge Error)." },
+            { status: 500 }
+        );
     }
 
-    const video = rows[0];
-    const url = video.downloadable_url;
-    const title = video.title;
+    const data = await bridgeResponse.json();
+    const url = data.url;
+    const title = data.title;
 
     if (!url) {
       return NextResponse.json(
@@ -58,13 +61,12 @@ export async function GET(request: NextRequest) {
     const cleanTitle = title.replace(/[^a-zA-Z0-9\s_-]/g, '').replace(/\s+/g, ' ');
     const filename = `${cleanTitle.replace(/ /g, '_')}.mp4`;
 
-    // 4. Pre-Flight Check (Resolve Redirects)
-    // fetch() automatically follows redirects by default.
-    // We perform a HEAD request first to inspect headers without downloading the body.
+    // 4. Pre-Flight Check (Resolve Akamai Redirects)
+    // We strictly check the headers before streaming to catch the 403/HTML errors.
     const preFlight = await fetch(url, {
       method: 'HEAD',
-      headers: { 'User-Agent': userAgent },
-      redirect: 'follow', // Follows 301/302 automatically
+      headers: { 'User-Agent': USER_AGENT },
+      redirect: 'follow',
     });
 
     const finalUrl = preFlight.url;
@@ -73,7 +75,7 @@ export async function GET(request: NextRequest) {
     const contentLength = preFlight.headers.get('content-length');
     const downloadSize = contentLength ? parseInt(contentLength, 10) : 0;
 
-    // 5. Error Handling (Thematic)
+    // 5. Disney-Themed Error Handling
     if (httpCode === 403) {
       return NextResponse.json(
         { status: 'error', code: 403, message: "The First Order has blocked this transmission. Access Restricted." },
@@ -109,17 +111,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 6. Stream Download
-    // We request the FINAL resolved URL to get the stream
+    // 6. Stream the File
     const fileResponse = await fetch(finalUrl, {
-      headers: { 'User-Agent': userAgent }
+      headers: { 'User-Agent': USER_AGENT }
     });
 
     if (!fileResponse.body) {
       return NextResponse.json({ status: 'error', code: 500, message: "Stream initialization failed." }, { status: 500 });
     }
 
-    // Prepare headers for the client
+    // Prepare headers
     const headers = new Headers();
     headers.set('Content-Description', 'File Transfer');
     headers.set('Content-Type', 'video/mp4');
@@ -132,14 +133,13 @@ export async function GET(request: NextRequest) {
       headers.set('Content-Length', downloadSize.toString());
     }
 
-    // Return the stream directly
     return new NextResponse(fileResponse.body, {
       status: 200,
       headers: headers,
     });
 
   } catch (error) {
-    console.error('Download API Error:', error);
+    console.error('API Error:', error);
     return NextResponse.json(
       { status: 'error', code: 500, message: "Internal Server Error." },
       { status: 500 }
