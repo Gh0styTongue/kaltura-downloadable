@@ -68,6 +68,12 @@ export async function GET(request: NextRequest) {
     const contentLength = preFlight.headers.get('content-length');
     const downloadSize = contentLength ? parseInt(contentLength, 10) : 0;
 
+    const SIZE_LIMIT = 1.3 * 1024 * 1024 * 1024;
+
+    if (downloadSize > SIZE_LIMIT) {
+      return NextResponse.redirect(finalUrl);
+    }
+
     if (httpCode === 403) {
       return NextResponse.json(
         { status: 'error', code: 403, message: "The First Order has blocked this transmission. Access Restricted." },
@@ -129,7 +135,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API Error:', error);
     return NextResponse.json(
       { status: 'error', code: 500, message: "Internal Server Error." },
       { status: 500 }

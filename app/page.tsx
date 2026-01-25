@@ -8,8 +8,8 @@ export default function Home() {
       </div>
 
       <header className="row-start-1 w-full max-w-5xl flex justify-between text-xs text-gray-600 uppercase tracking-[0.2em] z-10">
-        <span>sys_id: vrc-node-01</span>
-        <span>Encryption: Active</span>
+        <span>Server: Online</span>
+        <span>Secure Connection</span>
       </header>
 
       <main className="flex flex-col gap-8 row-start-2 items-center text-center z-10">
@@ -22,13 +22,13 @@ export default function Home() {
         
         <div className="max-w-md space-y-2 text-sm text-gray-400">
           <p className="uppercase tracking-widest text-cyan-500/80 text-xs mb-4">
-            [ API Gateway Online ]
+            [ Digital Archive Active ]
           </p>
           <p>
-            This endpoint operates as a stateless artifact delivery node.
+            Welcome to the gateway for our digital collection.
           </p>
           <p className="text-gray-600 text-xs">
-            Direct interface access is restricted to authorized archival protocols only.
+            This page is for system use only. Direct access to the archive is limited.
           </p>
         </div>
       </main>
@@ -36,9 +36,9 @@ export default function Home() {
       <footer className="row-start-3 flex flex-col items-center gap-2 text-[10px] text-gray-700 font-mono uppercase tracking-widest z-10">
         <div className="flex gap-2 items-center">
             <span className="w-2 h-2 rounded-full bg-green-500/50 animate-pulse"></span>
-            <span>System Operational</span>
+            <span>Everything is running smoothly</span>
         </div>
-        <p>&copy; {new Date().getFullYear()} Archive Protocol</p>
+        <p>&copy; {new Date().getFullYear()} Park Relics Archive</p>
       </footer>
     </div>
   );
