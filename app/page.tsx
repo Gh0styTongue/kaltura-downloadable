@@ -1,10 +1,7 @@
 export default function Home() {
-  const testId = "4bb39d5773e0ca8833003b15";
-
   return (
     <div className="grid grid-rows-[1fr_auto_1fr] items-center justify-items-center min-h-screen p-8 sm:p-20 font-[family-name:var(--font-geist-mono)] bg-black overflow-hidden relative text-center">
       
-      {/* Background Ambience */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-900/20 rounded-full blur-[120px] opacity-50 animate-pulse"></div>
       </div>
@@ -32,21 +29,19 @@ export default function Home() {
           
           <div className="pt-4 space-y-3">
             <p className="text-xs uppercase text-gray-500 tracking-widest">System Protocols</p>
-            <div className="flex flex-col gap-2">
-              <a 
-                href={`/api/get-size?id=${testId}`} 
-                className="bg-gray-900/50 border border-gray-800 hover:border-cyan-500/50 p-3 rounded text-xs transition-colors flex flex-col gap-1"
-              >
-                <span className="text-white">Run Density Scan</span>
-                <span className="text-[10px] text-gray-500">Uses api/get-size to calculate file size via HEAD request.</span>
-              </a>
-              <a 
-                href={`/api/download?id=${testId}`} 
-                className="bg-gray-900/50 border border-gray-800 hover:border-pink-500/50 p-3 rounded text-xs transition-colors flex flex-col gap-1"
-              >
-                <span className="text-white">Request Secure Retrieval</span>
-                <span className="text-[10px] text-gray-500">Uses api/download to stream files or redirect large items (&gt;1.3GB).</span>
-              </a>
+            <div className="grid grid-cols-1 gap-4 text-left">
+              <div className="bg-gray-900/50 border border-gray-800 p-4 rounded shadow-sm">
+                <h4 className="text-white text-xs mb-1 uppercase tracking-tighter">Density Scan (API)</h4>
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  Performs a pre-flight metadata check to calculate file density and availability without initiating a full data transfer.
+                </p>
+              </div>
+              <div className="bg-gray-900/50 border border-gray-800 p-4 rounded shadow-sm">
+                <h4 className="text-white text-xs mb-1 uppercase tracking-tighter">Secure Retrieval (API)</h4>
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  Manages the secure delivery of artifacts. Smaller items are streamed through an encrypted tunnel, while massive relics trigger a direct high-speed transfer.
+                </p>
+              </div>
             </div>
           </div>
 
