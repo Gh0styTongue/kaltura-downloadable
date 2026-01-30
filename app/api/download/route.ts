@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     const contentLength = preFlight.headers.get('content-length');
     const downloadSize = contentLength ? parseInt(contentLength, 10) : 0;
 
-    const SIZE_LIMIT = 1.3 * 1024 * 1024 * 1024;
+    const SIZE_LIMIT = 499 * 1024 * 1024;
 
     if (downloadSize > SIZE_LIMIT) {
       return NextResponse.redirect(finalUrl);
